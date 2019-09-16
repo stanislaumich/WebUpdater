@@ -6,7 +6,7 @@
 #include <ESP8266WiFi.h>
 #include <WiFiClient.h>
 #include <ESP8266WebServer.h>
-//#include <ESP8266mDNS.h>
+#include "FS.h"
 #include <ESP8266HTTPUpdateServer.h>
 //#include <GyverUART.h>;
 #include <HTTP.h>
@@ -20,16 +20,20 @@ IPAddress subnet(255,255,255,0);
 
 */
 
-#ifndef STASSID
+//#ifndef STASSID
 //#define STASSID "ZTE54"
 //#define STAPSK  "121211119"
 
-#endif
+//#endif
 
 const char* host = "esp8266";
-const char* ssid = STASSID;
-const char* password = STAPSK;
+const char* ssid1 = STASSID1;
+const char* password1 = STAPSK1;
+const char* ssid2 = STASSID2;
+const char* password2 = STAPSK2;
 String ipt = "";
+FSInfo fs_info;
+
 
 ESP8266WebServer httpServer(80);
 ESP8266HTTPUpdateServer httpUpdater;
@@ -54,22 +58,39 @@ void handleNotFound(){
 
 
 //////////////////////////////////////////////////////////////////////////////////
-
+uint cmillis;
 void setup(void) {
 
   Serial.begin(9600);
   Serial.println();
   Serial.println("Booting Sketch...");
   WiFi.mode(WIFI_AP_STA);
-  WiFi.begin(ssid, password);
+  WiFi.begin(ssid1, password1);
   WiFi.config(ip, gateway, subnet);
-  while (WiFi.waitForConnectResult() != WL_CONNECTED) {
-    WiFi.begin(ssid, password);
-    Serial.println("WiFi failed, retrying.");
+  cmillis=millis();
+  while ((WiFi.waitForConnectResult() != WL_CONNECTED) and (cmillis+TtoConn<millis())) {
+    //WiFi.begin(ssid1, password1);
+    Serial.println(ip.toString());
+    //Serial.println("WiFi failed, retrying.");
+  }
+  if (WiFi.waitForConnectResult() != WL_CONNECTED) {
+   WiFi.begin(ssid2, password2);
+  WiFi.config(ip, gateway, subnet); 
+  cmillis=millis();
+  while ((WiFi.waitForConnectResult() != WL_CONNECTED) and (cmillis+TtoConn<millis())) {
+    //WiFi.begin(ssid2, password2);
+    Serial.println(ip.toString());
+    //Serial.println("WiFi failed, retrying.");
+  }
   }
 //////////////////////////////////////////////////////////////////////////////////
- 
-
+  Serial.println("SPIFFS begin");
+  SPIFFS.begin();
+  //Serial.println("SPIFFS format");
+  //SPIFFS.format();
+  Serial.println("SPIFFS stop");
+  SPIFFS.info(fs_info);
+  Serial.println(fs_info.totalBytes);
   httpServer.on("/t", [](){
       Serial.print(httpServer.arg(0)+" "+httpServer.arg(1));
       Serial.println("");
